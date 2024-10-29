@@ -170,8 +170,8 @@ input[type="number"] {
   width: 100%;
   padding: 0.5rem;
   border-radius: 8px;
-  border: 1px solid var(--input-border-color);
-  background: var(--input-bg);
+  border: transparent;
+  background: transparent;
   color: var(--text-color);
   outline: none;
   backdrop-filter: blur(8px);

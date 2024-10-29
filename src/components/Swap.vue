@@ -1,6 +1,6 @@
 <template>
   <div class="swap-container">
-    <h2>Swap anytime, anywhere.</h2>
+    <h2>Swap Between Bridges</h2>
       <SwapField label="Sell" :selectedCoin="sellCoin" @openModal="openModal('sell')" />
       <SwapField label="Buy" :selectedCoin="buyCoin" @openModal="openModal('buy')" />
       <button class="swap-button">Get started</button>
