@@ -2,8 +2,8 @@
     <div class="modal-overlay" @click.self="closeModal">
       <div class="modal">
         <div v-if="loading">Loading...</div>
-        <ul v-else>
-          <li v-for="coin in coinList" :key="coin.name" @click="selectCoin(coin)">
+        <ul v-else class="m-ul">
+          <li v-for="coin in coinList" :key="coin.name" @click="selectCoin(coin)" class="m-li">
             <img :src="coin.logo" alt="Coin logo" class="coin-logo" /> {{ coin.name }}
           </li>
         </ul>

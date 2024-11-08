@@ -9,9 +9,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bitgo/utxo-lib": "git+https://github.com/VerusCoin/BitGoJS.git#7c754d4a5920198d9fe6827d3e23bd5cf431f264",
+    "axios": "^1.7.7",
+    "base-64": "1.0.0",
+    "base64url": "3.0.1",
+    "bigi": "1.4.2",
+    "bignumber.js": "9.0.1",
+    "bip39": "git+https://github.com/VerusCoin/bip39.git",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "ethers": "^6.13.4",
+    "qrcode": "^1.5.4",
+    "verusd-rpc-ts-client": "git+https://github.com/VerusCoin/verusd-rpc-ts-client.git",
+    "verusid-ts-client": "git+https://github.com/VerusCoin/verusid-ts-client.git",
+    "vite-plugin-node-polyfills": "^0.22.0",
     "vue": "^3.5.12"
   },
+  "resolutions": {
+    "verus-typescript-primitives": "https://github.com/VerusCoin/verus-typescript-primitives.git"
+  },
   "devDependencies": {
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@vitejs/plugin-vue": "^5.1.4",
     "vite": "^5.4.9"
   }

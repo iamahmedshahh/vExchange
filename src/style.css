@@ -8,19 +8,18 @@
 
 /* Theme Variables */
 :root {
-  --background-color: #0093E9;
-  --background-gradient: linear-gradient(160deg, #0093E9 0%, #207eb4 100%);
+  --background-color: #1e1e1e;
+  --background-gradient: linear-gradient(160deg, #333333 0%, #1e1e1e 100%);
   --text-color: #e0e0e0;
   --input-bg: rgba(255, 255, 255, 0.05);
   --input-border-color: rgba(255, 255, 255, 0.2);
   --transaction-bg: rgba(255, 255, 255, 0.05);
-  --modal-bg: rgba(0, 0, 0, 0.08);
-  --button-bg: #0C3CA5;
-  --slider-bg: black;
-  --button-gradient: linear-gradient(160deg, #0C3CA5 0%, #207eb4 100%);
-  --button-text-color: #ffffff;
   --modal-bg: rgba(0, 0, 0, 0.8);
-  --loading-spinner-color: #ffffff;
+  --button-bg: #0C3CA5;
+  --button-gradient: linear-gradient(160deg, #555555 0%, #333333 100%);
+  --button-text-color: #e0e0e0;
+  --button-shadow-color: rgba(255, 255, 255, 0.2);
+  --slider-bg: #0C3CA5;
 }
 
 /* Dark Theme */
@@ -35,52 +34,49 @@
   --button-bg: #0C3CA5;
   --button-gradient: linear-gradient(160deg, #555555 0%, #333333 100%);
   --button-text-color: #e0e0e0;
+  --button-shadow-color: rgba(255, 255, 255, 0.2);
+  --slider-bg: #0C3CA5;
 }
 
 /* Light Theme */
 [data-theme="light"] {
-  --background-color: #ffffff;
-  --background-gradient: linear-gradient(160deg, #f0f0f0 0%, #e0e0e0 100%);
-  --text-color: #333;
+  --background-color: #0093E9;
+  --background-gradient: linear-gradient(160deg, #0093E9 0%, #207eb4 100%);
+  --text-color: white;
   --input-bg: rgba(0, 0, 0, 0.05);
-  --input-border-color: rgba(0, 0, 0, 0.2);
+  --input-border-color: rgba(255, 255, 255, 0.2);
   --transaction-bg: rgba(0, 0, 0, 0.05);
-  --modal-bg: rgba(255, 255, 255, 0.9);
+  --modal-bg: rgba(0, 0, 0, 0.8);
   --button-bg: #0073e6;
   --button-gradient: linear-gradient(160deg, #0073e6 0%, #005bb5 100%);
   --button-text-color: #ffffff;
-  --button-shadow-color: #666;
+  --button-shadow-color: rgba(0, 0, 0, 0.2);
+  --slider-bg: #0073e6;
 }
 
+/* General Styling */
 html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: var(--background-color);
+  background-image: var(--background-gradient);
+  color: var(--text-color);
 }
-
-body {
-  background-color: #0C3CA5;
-  background-image: linear-gradient(160deg, #0C3CA5 0%, #207eb4 100%);
-  color: #e0e0e0;
-  margin: 0;
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
-
 .main-content {
-  flex: 1; /* This ensures this section takes up remaining space */
+  flex: 1;
 }
 
 footer {
   color: var(--text-color);
   padding: 1rem;
   text-align: center;
-  /* Add this to ensure it sticks to the bottom */
-  margin-top: auto; /* Pushes the footer to the bottom */
-}
-
-body.dark-theme {
-  background-color: #000;
-  background-image: none;
-  color: #f0f0f0;
+  margin-top: auto;
 }
 
 /* Navbar Styling */
@@ -89,14 +85,13 @@ body.dark-theme {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  color: #e0e0e0;
+  color: var(--text-color);
   width: 100%;
 }
 
 .navbar-logo {
   flex: 1;
   font-size: 1.5rem;
-  color: #e0e0e0;
 }
 
 .navbar-search {
@@ -109,10 +104,10 @@ body.dark-theme {
   width: 100%;
   max-width: 300px;
   padding: 0.5rem 1rem;
-  border-radius: 1px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  border-radius: 8px;
+  border: 3px solid var(--input-border-color);
+  background: var(--input-bg);
+  color: var(--text-color);
   outline: none;
   backdrop-filter: blur(10px);
   font-size: 1rem;
@@ -120,11 +115,11 @@ body.dark-theme {
 }
 
 .search-input::placeholder {
-  color: #c0c0c0;
+  color: var(--text-color);
 }
 
 .search-input:focus {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--transaction-bg);
   border-radius: 50px;
 }
 
@@ -142,39 +137,33 @@ body.dark-theme {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
   .navbar-search {
     width: 100%;
     order: 2;
     margin: 0.5rem 0;
   }
-
   .search-input {
     width: 100%;
   }
-
   .navbar-actions {
     order: 3;
     justify-content: center;
   }
-
   .navbar-logo {
     order: 1;
     text-align: center;
   }
 }
 
-/* Input Fields with Glass Effect */
+/* Input Fields */
 input[type="text"],
 input[type="number"] {
   width: 100%;
   padding: 0.5rem;
-  border-radius: 8px;
-  border: transparent;
   background: transparent;
-  color: var(--text-color);
+  border-color: transparent;
   outline: none;
-  backdrop-filter: blur(8px);
+  color: var(--text-color);
 }
 
 .search-bar {
@@ -183,7 +172,7 @@ input[type="number"] {
   margin-bottom: 1rem;
   border-radius: 4px;
   border: 1px solid var(--input-border-color);
-  background: var(--input-bg);
+  background: transparent;
 }
 
 @keyframes spin {
@@ -194,14 +183,13 @@ input[type="number"] {
 
 /* Swap Container */
 .swap-container {
-  display: flex; /* Change to flex for easier centering */
+  display: flex;
   flex-direction: column;
-  align-items: center; /* Center horizontally */
-  justify-content: center; /* Center vertically if needed */
+  align-items: center;
   border-radius: 12px;
   padding: 1.5rem;
   max-width: 420px;
-  margin: auto; /* Center the container */
+  margin: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -258,133 +246,59 @@ input[type="number"] {
   color: var(--background-color);
 }
 
-.coin-logo {
-  width: 20px;
-  height: 20px;
-  margin-right: 5px;
-}
-
 /* Coin Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* semi-transparent dark background */
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
+  z-index: 1000;  
 }
 
 .modal {
-  background: var(--modal-bg);
-  padding: 1.5rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  color: var(--text-color);
+  background-color: var(--modal-bg); /* Use defined variable */
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px; /* Maximum width for larger screens */
+  width: 90%; /* Responsive width */
+  max-height: 80vh; /* Limit height to prevent overflow */
+  overflow-y: auto; /* Enables vertical scrolling */
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  min-height: 300px; /* Ensure a minimum height */
 }
 
-.modal h3 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
+.m-ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
 
-.coin-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.coin-item {
+.m-li {
   display: flex;
   align-items: center;
-  padding: 10px 0;
+  padding: 10px;
   cursor: pointer;
-  transition: background 0.3s;
+  border-radius: 5px;
+  transition: background-color 0.3s;
 }
 
-.coin-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+.m-li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.coin-item img {
-  width: 24px;
-  height: 24px;
+.coin-logo {
+  width: 20px;
+  height: 20px;
   margin-right: 10px;
+  border-radius: 50%;
 }
 
-/* Button Styling */
-
-
-.button-56 {
-  align-items: center;
-  background-color: var(--button-bg);
-  background-image: var(--button-gradient);
-  border: 2px solid #fff;
-  border-radius: 8px;
-  box-sizing: border-box;
-  color: var(--button-text-color);
-  cursor: pointer;
-  display: flex;
-  font-family: Inter, sans-serif;
-  font-size: 16px;
-  height: 48px;
-  justify-content: center;
-  line-height: 24px;
-  max-width: 100%;
-  padding: 0 25px;
-  position: relative;
-  text-align: center;
-  text-decoration: none;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-  backdrop-filter: blur(15px);
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-/* Shadow Effect on Button */
-.button-56:after {
-  background-color: var(--button-shadow-color, rgba(0, 0, 0, 0.2)); /* Fallback color for shadow */
-  border-radius: 8px;
-  content: "";
-  display: block;
-  height: 48px;
-  left: 0;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  transform: translate(4px, 4px); /* Adjusted to make the shadow more noticeable */
-  transition: transform 0.2s ease-out;
-  z-index: -1;
-}
-
-/* Hover Effects */
-.button-56:hover {
-  background-color: var(--button-bg, #ffffff); /* Fallback color in case variable is undefined */
-  background-image: var(--button-gradient);
-  color: var(--button-text-color);
-  transform: translateY(-2px); /* Slight lift on hover for a dynamic effect */
-}
-
-.button-56:hover:after {
-  transform: translate(0, 0); /* Brings shadow back in line */
-}
-
-.button-56:active {
-  transform: translateY(1px); /* Slight press effect on active state */
-  outline: 0;
-}
-
-@media (min-width: 768px) {
-  .button-56 {
-    padding: 0 40px;
-  }
-}
-
-/* Theme Switcher Styling */
+/* Theme Switcher */
 .switch {
   position: relative;
   display: inline-block;
@@ -417,15 +331,67 @@ input[type="number"] {
   width: 26px;
   left: 4px;
   bottom: 4px;
-  background-color: var(--slider-bg);
+  background-color: white;
   transition: 0.4s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: var(--slider-bg);
+  background-color: var(--button-bg);
 }
 
 input:checked + .slider:before {
   transform: translateX(26px);
+}
+
+/* Button Styling */
+
+
+.button-56 {
+  align-items: center;
+  background-color: var(--button-bg);
+  background-image: var(--button-gradient);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--button-text-color);
+  cursor: pointer;
+  display: flex;
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  height: 48px;
+  justify-content: center;
+  line-height: 24px;
+  max-width: 100%;
+  padding: 0 25px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  backdrop-filter: blur(15px);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Hover Effects */
+.button-56:hover {
+  background-color: var(--button-bg, #ffffff); /* Fallback color in case variable is undefined */
+  background-image: var(--button-gradient);
+  color: var(--button-text-color);
+  transform: translateY(-2px); /* Slight lift on hover for a dynamic effect */
+}
+
+.button-56:hover:after {
+  transform: translate(0, 0); /* Brings shadow back in line */
+}
+
+.button-56:active {
+  transform: translateY(1px); /* Slight press effect on active state */
+  outline: 0;
+}
+
+@media (min-width: 768px) {
+  .button-56 {
+    padding: 0 40px;
+  }
 }

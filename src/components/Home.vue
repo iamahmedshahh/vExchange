@@ -1,4 +1,5 @@
 <template>
+  <div class="page-container">
   <header class="navbar">
     <NavBar />
   </header>
@@ -8,6 +9,7 @@
   <footer class="footer">
     <p>&copy; 2024 VerusSwap - All rights reserved.</p>
   </footer>
+  </div>
 </template>
 
 <script setup>
