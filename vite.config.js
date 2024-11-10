@@ -11,5 +11,10 @@ export default defineConfig({
     nodePolyfills({ include: ['fs', 'stream', 'buffer', 'crypto'] })
     
   ],
+  server: {
+    proxy: {
+      '/verusidlogin': 'http://localhost:3001', // Proxy requests to your Express server
+    },
+  },
   },
 );
