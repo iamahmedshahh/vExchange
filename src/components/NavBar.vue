@@ -10,7 +10,8 @@
 
     <!-- Right Column: Connect Wallet & Theme Switcher -->
     <div class="navbar-actions">
-      <button @click="$emit('toggle-modal')" class="button-56">Connect Wallet</button>
+      <button @click="$emit('toggle-modal')" class="button-56">Connect Verus ID</button>
+      <button class="button-56">Connect MetaMask</button>
       <ThemeSwitcher />
     </div>
 </nav>

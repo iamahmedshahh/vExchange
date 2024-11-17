@@ -12,9 +12,11 @@ export default defineConfig({
     
   ],
   server: {
-    proxy: {
-      '/verusidlogin': 'http://localhost:3001', // Proxy requests to your Express server
-    },
-  },
+    cors: {
+      origin: ['https://wasp-loved-alien.ngrok-free.app', 'ws://localhost:3000'], // or specify allowed origins
+      methods: ['GET', 'POST', 'PUT', 'DELETE'], // allowed methods
+      credentials: true,
+    }
+  }
   },
 );

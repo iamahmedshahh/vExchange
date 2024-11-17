@@ -1,55 +1,66 @@
 <template>
-  <div>
-    <h1>Login with Verus ID</h1>
-    <div v-if="loading">Loading QR Code...</div>
-    <div v-else-if="qrCodeUrl">
-      <p>Scan this QR code:</p>
-      <img :src="qrCodeUrl" alt="Login QR Code" />
-      <p v-if="username">Logged in as: {{ username }}</p>
-      <button v-if="username" @click="logout">Logout</button> <!-- Logout Button -->
+  <div class="modal">
+    <h3>Sign In</h3>
+    <div v-if="loading">
+      <Loading />
     </div>
-    <p v-if="error">{{ error }}</p>
+    <div v-else>
+      <div v-if="showLoginQR && QRData">
+        <qrcode-vue :value="QRData" size=200 />
+        <p>Please scan the QR code with your Verus Mobile app.</p>
+      </div>
+      <div v-else>
+        <button @click="handleLogin" class="button-56" >Login with your ID</button>
+      </div>
+      <div>
+       <p> Get <a href="#">Verus Wallet</a></p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { generateLogin } from '../scripts/verusIdLogin';
+import { ref } from 'vue';
+import { login } from '../scripts/login';
+import Loading from './Loading.vue';
+import QrcodeVue from 'qrcode.vue';
 
-const qrCodeUrl = ref('');
-const error = ref(null);
-const loading = ref(true);
-const username = ref(''); // Store the username
+const showLoginQR = ref(false);
+const QRData = ref(null);
+const loading = ref(false);
+const challengeID = ref(null);
 
-async function generateLoginHandler() {
-  error.value = null;
-  loading.value = true;
+const handleLogin = async () => {
   try {
-    const { qrCodeUrl: qrUrl, username: user } = await generateLogin();
+    loading.value = true;
+    const reply = await login();
 
-    // Set the QR code URL and username
-    qrCodeUrl.value = qrUrl;
-    username.value = user; // Set the username directly
+    if (reply?.success) {
+      console.log(reply.data.deepLink)
+      showLoginQR.value = true;
+      QRData.value = reply.data.deepLink;
+      challengeID.value = reply.data.challengeID;
+      loading.value = false;
 
-    if (username.value) {
-      loading.value = false;  // Hide the loading state when logged in
-    }
-  } catch (err) {
-    error.value = err.message;
-  } finally {
-    // Ensure loading is set to false after the process ends, regardless of success/failure
-    if (!username.value) {
+      const socket = new WebSocket(`${import.meta.env.VITE_WS_SERVER}/awaitlogin/${challengeID.value}`);
+      socket.onopen = () => console.log("WebSocket connection established");
+
+      socket.onmessage = (event) => {
+        const receivedMessage = JSON.parse(event.data);
+        localStorage.setItem("token", JSON.stringify(receivedMessage.JWT));
+        localStorage.setItem("iaddress", receivedMessage.iaddress);
+        localStorage.setItem("name", receivedMessage.name);
+        window.location.assign("/loggedin");
+      };
+
+      socket.onerror = (error) => console.error("WebSocket Error:", error);
+      socket.onclose = () => console.log("WebSocket connection closed");
+    } else {
       loading.value = false;
     }
+  } catch (error) {
+    console.error(error);
+    loading.value = false;
   }
-}
-
-function logout() {
-  username.value = ''; // Clear the username
-  qrCodeUrl.value = ''; // Clear the QR code URL
-  loading.value = true; // Reset loading state
-  generateLoginHandler(); // Optionally re-trigger the login process if needed
-}
-
-onMounted(generateLoginHandler);
+};
 </script>
