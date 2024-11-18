@@ -4,7 +4,11 @@
     <NavBar @toggle-modal="showModal = !showModal" />
   </header>
   <main class="main-content">
-    <Swap />
+    <!-- Only show Swap on the homepage -->
+    <template v-if="$route.path === '/'">
+        <Swap />
+      </template>
+      <router-view></router-view>
 
   <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
         <QrLogin @close="showModal = false"/>

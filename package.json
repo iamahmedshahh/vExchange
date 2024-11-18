@@ -26,7 +26,8 @@
     "verusd-rpc-ts-client": "git+https://github.com/VerusCoin/verusd-rpc-ts-client.git",
     "verusid-ts-client": "git+https://github.com/VerusCoin/verusid-ts-client.git",
     "vite-plugin-node-polyfills": "^0.22.0",
-    "vue": "^3.5.12"
+    "vue": "^3.5.12",
+    "vue-router": "^4.0.13"
   },
   "resolutions": {
     "verus-typescript-primitives": "https://github.com/VerusCoin/verus-typescript-primitives.git"

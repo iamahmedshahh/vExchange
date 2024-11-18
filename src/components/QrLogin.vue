@@ -6,7 +6,7 @@
     </div>
     <div v-else>
       <div v-if="showLoginQR && QRData">
-        <qrcode-vue :value="QRData" size=300 />
+        <QrcodeVue :value="QRData" :size=300 />
         <p>Please scan the QR code with your Verus Mobile app.</p>
       </div>
       <div v-else>
