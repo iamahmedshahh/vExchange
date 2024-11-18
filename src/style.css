@@ -278,7 +278,8 @@ input[type="number"] {
 
 .modal button,
 .modal p,
-.modal h3 {
+.modal h3,
+.modal div{
   margin-top: 15px; /* Adjust the space as needed */
 }
 
