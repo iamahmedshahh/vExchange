@@ -264,7 +264,7 @@ input[type="number"] {
   background-color: var(--modal-bg); /* Use defined variable */
   padding: 20px;
   border-radius: 10px;
-  max-width: 400px; /* Maximum width for larger screens */
+  max-width: 700px; /* Maximum width for larger screens */
   width: 90%; /* Responsive width */
   max-height: 80vh; /* Limit height to prevent overflow */
   overflow-y: auto; /* Enables vertical scrolling */

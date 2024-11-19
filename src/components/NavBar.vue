@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar">
     <!-- Left Column: Logo -->
-    <h1 class="navbar-logo">vExchange</h1>
+    <h1 class="navbar-logo" @click="">vExchange</h1>
     
     <!-- Center Column: Search Bar -->
     <div class="navbar-search">

@@ -7,6 +7,7 @@
       </div>
       <Loading v-if="loading" />
     </div>
+    <router-view></router-view>
   </template>
   
   <script setup>
