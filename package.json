@@ -22,6 +22,7 @@
     "crypto-browserify": "^3.12.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.4",
+    "pinia": "^2.2.6",
     "qrcode": "^1.5.4",
     "qrcode.vue": "^3.6.0",
     "verusd-rpc-ts-client": "git+https://github.com/VerusCoin/verusd-rpc-ts-client.git",

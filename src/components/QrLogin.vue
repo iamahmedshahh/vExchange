@@ -24,7 +24,9 @@ import { ref, watch } from 'vue';
 import { login } from '../scripts/login';
 import Loading from './Loading.vue';
 import QRCode from 'qrcode';
+import { useUserStore } from '../stores/userStore';
 
+const userStore = useUserStore();
 const showLoginQR = ref(false);
 const QRData = ref(null);
 const qrCodeUrl = ref('');
@@ -61,6 +63,11 @@ const handleLogin = async () => {
         localStorage.setItem("token", JSON.stringify(receivedMessage.JWT));
         localStorage.setItem("iaddress", receivedMessage.iaddress);
         localStorage.setItem("name", receivedMessage.name);
+        
+        // Update the Pinia store
+        userStore.setLoginStatus(true);
+        userStore.setVerusId(receivedMessage.name);
+        
         window.location.assign("/loggedin");
       };
 
