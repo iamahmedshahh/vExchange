@@ -54,6 +54,7 @@
 import { ref, computed, onMounted } from 'vue';
 import MetaMaskService from '../scripts/metaMaskLogin';
 import ThemeSwitcher from './ThemeSwitcher.vue';
+import { useAuthStore } from '../stores/authStore';
 
 const walletAddress = ref(null);
 const metaMaskService = new MetaMaskService();
@@ -62,6 +63,7 @@ const showUserDropdown = ref(false);
 const showSettingsDropdown = ref(false);
 const isCopied = ref(false);
 const verusName = ref(localStorage.getItem('name'));
+const authStore = useAuthStore();
 
 onMounted(() => {
   const storedAddress = localStorage.getItem('walletAddress');
@@ -120,10 +122,10 @@ const logout = () => {
   localStorage.removeItem('walletAddress');
 };
 
-const logoutv = () =>
-{
+const logoutv = () => {
   verusName.value = null;
   localStorage.removeItem('name');
+  authStore.logout();
 };
 </script>
 

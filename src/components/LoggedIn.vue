@@ -5,7 +5,7 @@
       <p><b>Welcome:</b> {{ name }}</p>
       <p><b>Iaddress:</b> {{ iaddress }}</p>
       <p><b>Balance:</b> {{ balanceForUser }}</p>
-      <button @click="logout">Log Out</button>
+      <button @click="logout" class="logout-button">Log Out</button>
     </div>
     <Loading v-if="loading" />
   </div>
@@ -29,14 +29,10 @@ onMounted(async () => {
       console.log('Full balance response:', balance);
       
       if (balance && balance.result && typeof balance.result.balance !== 'undefined') {
-        // getAddressBalance returns { balance, received, currencybalance, currencyreceived }
         const balanceAmount = balance.result.balance;
-        
-        // Convert satoshis to VRSC (1 VRSC = 100000000 satoshis)
         const balanceInVRSC = balanceAmount / 100000000;
         balanceForUser.value = `${balanceInVRSC.toFixed(8)} VRSC`;
 
-        // Log additional balance information if available
         if (balance.result.currencybalance) {
           console.log('Currency balances:', balance.result.currencybalance);
         }
@@ -52,12 +48,29 @@ onMounted(async () => {
   }
 });
 
-// Logout function
 const logout = () => {
-  localStorage.removeItem('name');
   localStorage.removeItem('iaddress');
+  localStorage.removeItem('name');
+  localStorage.removeItem('token');
   name.value = null;
   iaddress.value = null;
   loading.value = true;
+  window.location.assign('/');
 };
 </script>
+
+<style scoped>
+.logout-button {
+  margin-top: 10px;
+  background: #dc3545;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #c82333;
+}
+</style>

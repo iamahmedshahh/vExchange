@@ -3,104 +3,111 @@
   <div class="main-content">
     <h1>Wallet Page</h1>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button :class="{ active: activeTab === 'Verus' }" @click="setActiveTab('Verus')">Verus</button>
-      <button :class="{ active: activeTab === 'Ethereum' }" @click="setActiveTab('Ethereum')">Ethereum</button>
+    <div v-if="!authStore.isLoggedIn" class="login-prompt">
+      <p>Kindly log in to view balances</p>
     </div>
 
-    <!-- Tab Content -->
-    <div v-if="activeTab === 'Verus'" class="tab-content verus-tab">
-      <div class="tab-header">
-        <h2>Verus Currencies</h2>
-        <div class="filter-controls">
-          <label class="filter-toggle">
-            <input type="checkbox" v-model="showOnlyWithBalance">
-            Show only currencies with balance
-          </label>
-          <button @click="refreshBalances" class="refresh-button" :disabled="loading">
-            <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
-            Refresh
+    <div v-else>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button :class="{ active: activeTab === 'Verus' }" @click="setActiveTab('Verus')">Verus</button>
+        <button :class="{ active: activeTab === 'Ethereum' }" @click="setActiveTab('Ethereum')">Ethereum</button>
+      </div>
+      <!-- Tab Content -->
+      <div v-if="activeTab === 'Verus'" class="tab-content verus-tab">
+        <div class="tab-header">
+          <h2>Verus Currencies</h2>
+          <div class="filter-controls">
+            <label class="filter-toggle">
+              <input type="checkbox" v-model="showOnlyWithBalance">
+              Show only currencies with balance
+            </label>
+            <button @click="refreshBalances" class="refresh-button" :disabled="loading">
+              <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Loading currencies...</span>
+        </div>
+        <div v-else-if="error" class="error-state">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>{{ error }}</span>
+          <button @click="fetchVerusCurrencies" class="retry-button">
+            <i class="fas fa-redo"></i> Retry
           </button>
         </div>
-      </div>
-
-      <div v-if="loading" class="loading-state">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>Loading currencies...</span>
-      </div>
-      <div v-else-if="error" class="error-state">
-        <i class="fas fa-exclamation-circle"></i>
-        <span>{{ error }}</span>
-        <button @click="fetchVerusCurrencies" class="retry-button">
-          <i class="fas fa-redo"></i> Retry
-        </button>
-      </div>
-      <div v-else class="currencies-grid">
-        <div v-for="currency in filteredCurrencies" 
-             :key="currency.currencyid" 
-             class="currency-card"
-             :class="{ 'has-balance': currency.balance > 0 }">
-          <div class="currency-header">
-            <h3>{{ currency.name || currency.currencyid }}</h3>
-            <span class="currency-balance" :class="{ 'positive-balance': currency.balance > 0 }">
-              {{ formatNumber(currency.balance) }} {{ currency.name }}
-            </span>
-          </div>
-          <div class="currency-details">
-            <div class="detail-item">
-              <span class="label">Balance:</span>
-              <span class="value" :class="{ 'positive-balance': currency.balance > 0 }">
+        <div v-else class="currencies-grid">
+          <div v-for="currency in filteredCurrencies" 
+               :key="currency.currencyid" 
+               class="currency-card"
+               :class="{ 'has-balance': currency.balance > 0 }">
+            <div class="currency-header">
+              <h3>{{ currency.name || currency.currencyid }}</h3>
+              <span class="currency-balance" :class="{ 'positive-balance': currency.balance > 0 }">
                 {{ formatNumber(currency.balance) }} {{ currency.name }}
               </span>
             </div>
-            <div class="detail-item">
-              <span class="label">Currency ID:</span>
-              <span class="value">{{ currency.currencyid }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Parent:</span>
-              <span class="value">{{ currency.parent ? currency.parent.substring(0, 10) + '...' : 'None' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">System ID:</span>
-              <span class="value">{{ currency.systemid ? currency.systemid.substring(0, 10) + '...' : 'None' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Supply:</span>
-              <span class="value">{{ formatNumber(currency.supply) }}</span>
-            </div>
-            <div class="detail-item" v-if="currency.privatesupply">
-              <span class="label">Private Supply:</span>
-              <span class="value">{{ formatNumber(currency.privatesupply) }}</span>
-            </div>
-            <div class="detail-item" v-if="currency.reserve">
-              <span class="label">Reserve:</span>
-              <span class="value">{{ formatNumber(currency.reserve) }}</span>
+            <div class="currency-details">
+              <div class="detail-item">
+                <span class="label">Balance:</span>
+                <span class="value" :class="{ 'positive-balance': currency.balance > 0 }">
+                  {{ formatNumber(currency.balance) }} {{ currency.name }}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Currency ID:</span>
+                <span class="value">{{ currency.currencyid }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Parent:</span>
+                <span class="value">{{ currency.parent ? currency.parent.substring(0, 10) + '...' : 'None' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">System ID:</span>
+                <span class="value">{{ currency.systemid ? currency.systemid.substring(0, 10) + '...' : 'None' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">Supply:</span>
+                <span class="value">{{ formatNumber(currency.supply) }}</span>
+              </div>
+              <div class="detail-item" v-if="currency.privatesupply">
+                <span class="label">Private Supply:</span>
+                <span class="value">{{ formatNumber(currency.privatesupply) }}</span>
+              </div>
+              <div class="detail-item" v-if="currency.reserve">
+                <span class="label">Reserve:</span>
+                <span class="value">{{ formatNumber(currency.reserve) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div v-else-if="activeTab === 'Ethereum'" class="tab-content">
-      <h2>Ethereum Wallet</h2>
-      <p v-if="walletAddress">Address: {{ walletAddress }}</p>
-      <p v-else>No wallet connected</p>
-      <ul v-if="balances.length">
-        <li v-for="(balance, index) in balances" :key="index">
-          {{ balance.token }}: {{ balance.amount }}
-        </li>
-      </ul>
+      <div v-else-if="activeTab === 'Ethereum'" class="tab-content">
+        <h2>Ethereum Wallet</h2>
+        <p v-if="walletAddress">Address: {{ walletAddress }}</p>
+        <p v-else>No wallet connected</p>
+        <ul v-if="balances.length">
+          <li v-for="(balance, index) in balances" :key="index">
+            {{ balance.token }}: {{ balance.amount }}
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { listCurrencies, getAllCurrencyBalances } from '../scripts/verusRpcInit';
 import MetaMaskService from '../scripts/metaMaskLogin';
+import { useAuthStore } from '../stores/authStore';
 
+const authStore = useAuthStore();
 const activeTab = ref('Verus');
 const currencies = ref([]);
 const loading = ref(false);
@@ -111,6 +118,11 @@ const showOnlyWithBalance = ref(false);
 
 const metaMaskService = new MetaMaskService();
 
+// Initialize auth store
+onMounted(() => {
+  authStore.init();
+});
+
 const filteredCurrencies = computed(() => {
   if (showOnlyWithBalance.value) {
     return currencies.value.filter(currency => currency.balance > 0);
@@ -118,72 +130,84 @@ const filteredCurrencies = computed(() => {
   return currencies.value;
 });
 
-const setActiveTab = (tab) => {
-  activeTab.value = tab;
-  if (tab === 'Verus') {
-    fetchVerusCurrencies();
-  } else if (tab === 'Ethereum') {
-    fetchEthereumBalances();
-  }
-};
-
 const formatNumber = (num) => {
   if (num === undefined || num === null) return '0.00000000';
   const parsedNum = parseFloat(num);
   if (isNaN(parsedNum)) return '0.00000000';
-  return parsedNum.toFixed(8); // Always show 8 decimal places for cryptocurrency
+  return parsedNum.toFixed(8);
 };
 
 const refreshBalances = async () => {
-  console.log('Refreshing balances...');
-  await fetchVerusCurrencies();
+  if (authStore.isLoggedIn) {
+    await fetchVerusCurrencies();
+  }
 };
 
 const fetchVerusCurrencies = async () => {
+  if (!authStore.isLoggedIn || !authStore.iaddress) {
+    console.log('Not logged in or no address available');
+    currencies.value = [];
+    error.value = 'Please log in to view currencies';
+    return;
+  }
+  
   loading.value = true;
   error.value = null;
+  
   try {
-    console.log('Fetching currencies with balances...');
-    const result = await getAllCurrencyBalances();
-    console.log('Received currencies with balances:', result);
-    
-    // Filter out currencies with no definition
-    currencies.value = result
-      .filter(currency => currency.name) // Only include currencies with names
-      .sort((a, b) => {
-        // Sort by balance first (higher balances first)
-        const balanceA = parseFloat(a.balance) || 0;
-        const balanceB = parseFloat(b.balance) || 0;
-        if (balanceB !== balanceA) {
-          return balanceB - balanceA;
-        }
-        // Then sort by name
-        return (a.name || a.currencyid).localeCompare(b.name || b.currencyid);
-      });
-    
-    console.log('Sorted currencies:', currencies.value);
+    const [currenciesResult, balancesResult] = await Promise.all([
+      listCurrencies(),
+      getAllCurrencyBalances(authStore.iaddress)
+    ]);
+
+    // Process currencies and merge with balances
+    currencies.value = balancesResult;
+    console.log('Updated currencies:', currencies.value);
   } catch (err) {
-    error.value = 'Failed to load currencies. Please try again.';
-    console.error('Error fetching currencies:', err);
+    console.error('Error fetching Verus currencies:', err);
+    error.value = err.message || 'Failed to fetch currencies';
+    currencies.value = [];
   } finally {
     loading.value = false;
   }
 };
 
 const fetchEthereumBalances = async () => {
-  walletAddress.value = await metaMaskService.connect();
-  if (walletAddress.value) {
-    // Fetch token balances here (mock data for illustration)
-    balances.value = [
-      { token: 'ETH', amount: '1.5' },
-      { token: 'DAI', amount: '100' }
-    ];
+  if (!metaMaskService.isConnected()) {
+    try {
+      await metaMaskService.connect();
+      walletAddress.value = await metaMaskService.getAddress();
+      // Implement balance fetching here
+      balances.value = [];
+    } catch (err) {
+      console.error('Error connecting to MetaMask:', err);
+    }
   }
 };
 
-onMounted(() => {
-  fetchVerusCurrencies();
-});
+const setActiveTab = (tab) => {
+  activeTab.value = tab;
+  if (tab === 'Verus' && authStore.isLoggedIn) {
+    fetchVerusCurrencies();
+  } else if (tab === 'Ethereum') {
+    fetchEthereumBalances();
+  }
+};
+
+// Watch for auth state changes
+watch(() => authStore.isLoggedIn, (isLoggedIn) => {
+  console.log('Auth state changed:', isLoggedIn);
+  if (!isLoggedIn) {
+    // Clear all data when logged out
+    currencies.value = [];
+    balances.value = [];
+    walletAddress.value = null;
+    error.value = null;
+  } else if (authStore.iaddress) {
+    // Refresh data when logged in
+    fetchVerusCurrencies();
+  }
+}, { immediate: true });
 </script>
 
 <style scoped>
@@ -371,6 +395,22 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.login-prompt {
+  text-align: center;
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 400px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.login-prompt p {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 @media (max-width: 768px) {

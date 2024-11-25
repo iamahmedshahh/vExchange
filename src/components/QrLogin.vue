@@ -68,7 +68,7 @@ const handleLogin = async () => {
         userStore.setLoginStatus(true);
         userStore.setVerusId(receivedMessage.name);
         
-        window.location.assign("/loggedin");
+        window.location.assign("/");
       };
 
       socket.onerror = (error) => console.error("WebSocket Error:", error);

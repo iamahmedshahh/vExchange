@@ -21,11 +21,17 @@ import NavBar from './components/NavBar.vue';
 import Swap from './components/Swap.vue';
 import QrLogin from './components/QrLogin.vue';
 import { ref, onMounted} from 'vue';
-import {listCurrencies} from './scripts/verusRpcInit'
+import {listCurrencies} from './scripts/verusRpcInit';
+import { useAuthStore } from './stores/authStore';
+
+const authStore = useAuthStore();
+const showModal = ref(false);
 
 onMounted(async () => {
+  // Initialize auth store
+  authStore.init();
+  
   try {
-    // Call your function, for example:
     const result = await listCurrencies();
     console.log(result);
   } catch (error) {
@@ -33,8 +39,4 @@ onMounted(async () => {
   }
 });
 
-const showModal = ref(false);
-
 </script>
-
-

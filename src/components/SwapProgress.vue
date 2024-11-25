@@ -56,7 +56,7 @@ defineExpose({
   margin: 20px;
   padding: 20px;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: var(--card-bg);
 }
 
 .progress-container {
@@ -73,7 +73,7 @@ defineExpose({
   left: 0;
   right: 0;
   height: 2px;
-  background: #e9ecef;
+  background: var(--input-border-color);
   z-index: 1;
 }
 
@@ -90,32 +90,46 @@ defineExpose({
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #e9ecef;
+  background: var(--input-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  color: var(--text-color);
 }
 
 .progress-step.active .step-number {
-  background: #007bff;
+  background: var(--button-bg);
   color: white;
 }
 
 .progress-step.completed .step-number {
-  background: #28a745;
+  background: var(--success-color, #28a745);
   color: white;
 }
 
 .status-message {
   text-align: center;
   margin-top: 20px;
-  color: #6c757d;
+  color: var(--text-color-secondary);
 }
 
 .error-message {
-  color: #dc3545;
+  color: var(--error-color, #dc3545);
   text-align: center;
   margin-top: 10px;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}
+
+.progress-step.active .step-label {
+  color: var(--text-color);
+}
+
+.progress-step.completed .step-label {
+  color: var(--success-color, #28a745);
 }
 </style>

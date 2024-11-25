@@ -354,13 +354,12 @@ export async function sendCrossChain({ fromCurrency, toCurrency, amount }) {
   }
 }
 
-export async function getAllCurrencyBalances() {
+export async function getAllCurrencyBalances(address) {
   try {
-    const iaddress = localStorage.getItem('iaddress');
-    console.log('Getting balances for iAddress:', iaddress);
+    console.log('Getting balances for address:', address);
     
-    if (!iaddress) {
-      throw new Error('User address not found. Please log in.');
+    if (!address) {
+      throw new Error('Address is required');
     }
 
     // Get all currencies first
@@ -373,7 +372,7 @@ export async function getAllCurrencyBalances() {
 
     // Get direct balance first (this includes VRSC balance)
     const balanceRes = await verusdClient.getAddressBalance({ 
-      addresses: [iaddress],
+      addresses: [address],
       currencynames: true
     });
     console.log('Direct balance response:', balanceRes);

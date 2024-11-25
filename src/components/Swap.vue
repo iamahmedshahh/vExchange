@@ -133,25 +133,33 @@ function selectCoin(coin) {
 }
 
 async function fetchCoins() {
-  isLoading.value = true; // Set loading to true when starting the fetch
+  isLoading.value = true;
   try {
-    const response = await listCurrencies();
-    console.log("Response data:", response); // Check the structure of the response
+    const currencies = await listCurrencies();
+    console.log("Raw currency response:", currencies);
 
-    if (response && Array.isArray(response)) {
-      coinList.value = response.map((coin) => ({
-        name: coin.currencydefinition?.name || "Unknown", 
-        logo: "path/to/default/logo.png", // Update this path as needed
-      }));
+    if (Array.isArray(currencies)) {
+      coinList.value = currencies
+        .filter(currency => currency.currencydefinition && currency.currencydefinition.name)
+        .map(currency => ({
+          name: currency.currencydefinition.name,
+          currencyid: currency.currencydefinition.currencyid,
+          logo: "path/to/default/logo.png"
+        }));
     } else {
-      console.error("Response is missing expected properties:", response);
+      console.error("Invalid response format:", currencies);
+      throw new Error("Failed to parse currency list");
     }
   } catch (error) {
     console.error("Error fetching coin list:", error);
+    errorMessage.value = "Failed to load available coins";
   } finally {
-    isLoading.value = false; // Set loading to false after fetching
+    isLoading.value = false;
   }
 }
+
+// Initial fetch of coins
+fetchCoins();
 
 const checkBalance = async () => {
   const iaddress = localStorage.getItem('iaddress');
