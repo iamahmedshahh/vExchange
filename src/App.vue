@@ -4,12 +4,13 @@
     <NavBar @toggle-modal="showModal = !showModal" />
   </header>
   <main class="main-content">
-      <router-view></router-view>
-
   <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
         <QrLogin @close="showModal = false"/>
   </div>
-  </main>
+  <div v-else>
+    <Swap></Swap>
+  </div>
+</main>
   <footer class="footer">
     <p>&copy; 2024 VerusSwap - All rights reserved.</p>
   </footer>

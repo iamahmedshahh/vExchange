@@ -438,16 +438,33 @@ export async function getAllCurrencyBalances(address) {
 
 export async function listCurrencies() {
   try {
-    console.log("listCurrencies");
+    console.log("Calling listCurrencies...");
     const res = await verusdClient.listCurrencies();
+    
+    if (!res || !res.result) {
+      console.error("Invalid response from listCurrencies:", res);
+      return [];
+    }
+
+    // Log the full response structure
+    console.log("Full listCurrencies response:", JSON.stringify(res, null, 2));
+    
     // Log a sample currency to understand its structure
     if (res.result && res.result.length > 0) {
-      console.log("Sample currency definition:", res.result[0]);
+      console.log("Sample currency structure:", JSON.stringify(res.result[0], null, 2));
     }
-    console.log(res.result);
-    return res.result;
+
+    // Process and return only valid currencies
+    const validCurrencies = res.result.filter(currency => 
+      currency && 
+      currency.currencydefinition && 
+      currency.currencydefinition.currencyid
+    );
+
+    console.log(`Found ${validCurrencies.length} valid currencies`);
+    return validCurrencies;
   } catch (error) {
-    console.log("listCurrencies error", error);
+    console.error("listCurrencies error:", error);
     throw error;
   }
 }

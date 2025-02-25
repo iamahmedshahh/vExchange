@@ -22,7 +22,7 @@
               <input type="checkbox" v-model="showOnlyWithBalance">
               Show only currencies with balance
             </label>
-            <button @click="refreshBalances" class="refresh-button" :disabled="loading">
+            <button @click="refreshBalances" class="refresh-button" :disabled="loading || !isConnected">
               <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
               Refresh
             </button>
@@ -44,18 +44,18 @@
           <div v-for="currency in filteredCurrencies" 
                :key="currency.currencyid" 
                class="currency-card"
-               :class="{ 'has-balance': currency.balance > 0 }">
+               :class="{ 'has-balance': getBalance(currency.currencyid) > 0 }">
             <div class="currency-header">
               <h3>{{ currency.name || currency.currencyid }}</h3>
-              <span class="currency-balance" :class="{ 'positive-balance': currency.balance > 0 }">
-                {{ formatNumber(currency.balance) }} {{ currency.name }}
+              <span class="currency-balance" :class="{ 'positive-balance': getBalance(currency.currencyid) > 0 }">
+                {{ formatNumber(getBalance(currency.currencyid)) }} {{ currency.name }}
               </span>
             </div>
             <div class="currency-details">
               <div class="detail-item">
                 <span class="label">Balance:</span>
-                <span class="value" :class="{ 'positive-balance': currency.balance > 0 }">
-                  {{ formatNumber(currency.balance) }} {{ currency.name }}
+                <span class="value" :class="{ 'positive-balance': getBalance(currency.currencyid) > 0 }">
+                  {{ formatNumber(getBalance(currency.currencyid)) }} {{ currency.name }}
                 </span>
               </div>
               <div class="detail-item">
@@ -102,12 +102,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { listCurrencies, getAllCurrencyBalances } from '../scripts/verusRpcInit';
-import MetaMaskService from '../scripts/metaMaskLogin';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/authStore';
+import { useVerusWallet } from '../hooks/useVerusWallet';
+import { listCurrencies } from '../scripts/verusRpcInit';
 
 const authStore = useAuthStore();
+const { balances: verusBalances, isConnected, refreshBalances: refreshWalletBalances } = useVerusWallet();
+
 const activeTab = ref('Verus');
 const currencies = ref([]);
 const loading = ref(false);
@@ -125,7 +127,7 @@ onMounted(() => {
 
 const filteredCurrencies = computed(() => {
   if (showOnlyWithBalance.value) {
-    return currencies.value.filter(currency => currency.balance > 0);
+    return currencies.value.filter(currency => getBalance(currency.currencyid) > 0);
   }
   return currencies.value;
 });
@@ -137,9 +139,21 @@ const formatNumber = (num) => {
   return parsedNum.toFixed(8);
 };
 
+const getBalance = (currencyId) => {
+  return verusBalances.value[currencyId] || 0;
+};
+
 const refreshBalances = async () => {
-  if (authStore.isLoggedIn) {
-    await fetchVerusCurrencies();
+  if (!isConnected || loading.value) return;
+  
+  loading.value = true;
+  try {
+    const currencies = await listCurrencies();
+    await refreshWalletBalances(currencies.map(c => c.currencyid));
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -155,13 +169,8 @@ const fetchVerusCurrencies = async () => {
   error.value = null;
   
   try {
-    const [currenciesResult, balancesResult] = await Promise.all([
-      listCurrencies(),
-      getAllCurrencyBalances(authStore.iaddress)
-    ]);
-
-    // Process currencies and merge with balances
-    currencies.value = balancesResult;
+    const currenciesResult = await listCurrencies();
+    currencies.value = currenciesResult;
     console.log('Updated currencies:', currencies.value);
   } catch (err) {
     console.error('Error fetching Verus currencies:', err);

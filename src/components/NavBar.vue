@@ -24,8 +24,8 @@
       </div>
       <button v-else @click="$emit('toggle-modal')" class="button-56">Connect Verus ID</button>
 
-      <button v-if="!walletAddress" @click="connectMetaMask" class="button-56">
-        Connect MetaMask
+      <button v-if="!isConnected" @click="connectWallet" class="button-56">
+        {{ isInstalled ? 'Connect Verus Wallet' : 'Install Verus Wallet' }}
       </button>
       <div v-else>
         <!-- Wallet Address with Copy and Logout Icons -->
@@ -52,44 +52,24 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import MetaMaskService from '../scripts/metaMaskLogin';
 import ThemeSwitcher from './ThemeSwitcher.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useVerusWallet } from '../hooks/useVerusWallet';
 
-const walletAddress = ref(null);
-const metaMaskService = new MetaMaskService();
-const showWalletDropdown = ref(false);
-const showUserDropdown = ref(false);
-const showSettingsDropdown = ref(false);
-const isCopied = ref(false);
-const verusName = ref(localStorage.getItem('name'));
 const authStore = useAuthStore();
+const { address, isConnected, isInstalled, connect, error: walletError } = useVerusWallet();
+
+const showSettingsDropdown = ref(false);
+const showUserDropdown = ref(false);
+const isCopied = ref(false);
+const verusName = computed(() => authStore.verusName);
 
 onMounted(() => {
-  const storedAddress = localStorage.getItem('walletAddress');
-  if (storedAddress) {
-    walletAddress.value = storedAddress;
-  }
-});
-
-// Connect MetaMask
-const connectMetaMask = async () => {
-  const address = await metaMaskService.connect();
-  walletAddress.value = address;
-  localStorage.setItem('walletAddress', address); // Store in localStorage
-};
-
-// Format wallet address
-const formattedAddress = computed(() => {
-  if (!walletAddress.value) return '';
-  const address = walletAddress.value;
-  return `${address.slice(0, 5)}...${address.slice(-5)}`;
 });
 
 // Toggle settings dropdown visibility
 const toggleSettingsDropdown = () => {
   showSettingsDropdown.value = !showSettingsDropdown.value;
-  showWalletDropdown.value = false;
 };
 
 // Toggle user dropdown
@@ -100,26 +80,47 @@ const toggleUserDropdown = () => {
   }
 };
 
-// Copy wallet address to clipboard
-const copyToClipboard = async () => {
-  if (walletAddress.value) {
-    try {
-      await navigator.clipboard.writeText(walletAddress.value);
-      isCopied.value = true;
-      setTimeout(() => {
-        isCopied.value = false;
-      }, 700);
-    } catch (error) {
-      console.error('Failed to copy address:', error);
-    }
+// Connect Verus Wallet
+const connectWallet = async () => {
+  if (!isInstalled) {
+    // Open Verus wallet extension installation page
+    window.open('https://verus.io/wallet-extension', '_blank');
+    return;
+  }
+
+  try {
+    await connect();
+  } catch (err) {
+    console.error('Failed to connect wallet:', err);
   }
 };
 
-// Logout MetaMask
+// Format wallet address
+const formattedAddress = computed(() => {
+  if (!address.value) return '';
+  const addr = address.value;
+  return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+});
+
+// Copy wallet address to clipboard
+const copyToClipboard = async () => {
+  if (!address.value) return;
+  
+  try {
+    await navigator.clipboard.writeText(address.value);
+    isCopied.value = true;
+    setTimeout(() => {
+      isCopied.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy address:', err);
+  }
+};
+
+// Logout Verus Wallet
 const logout = () => {
-  walletAddress.value = null;
-  showWalletDropdown.value = false;
-  localStorage.removeItem('walletAddress');
+  // Clear the wallet connection state
+  window.location.reload();
 };
 
 const logoutv = () => {
