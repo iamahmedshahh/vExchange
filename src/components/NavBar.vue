@@ -51,20 +51,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import ThemeSwitcher from './ThemeSwitcher.vue';
 import { useAuthStore } from '../stores/authStore';
 import { useVerusWallet } from '../hooks/useVerusWallet';
 
 const authStore = useAuthStore();
-const { address, isConnected, isInstalled, connect, error: walletError } = useVerusWallet();
+const wallet = useVerusWallet();
+const { address, isConnected, isInstalled } = wallet;
 
 const showSettingsDropdown = ref(false);
 const showUserDropdown = ref(false);
 const isCopied = ref(false);
 const verusName = computed(() => authStore.verusName);
 
-onMounted(() => {
+// Watch for wallet connection changes
+watch(isConnected, (newValue) => {
+  console.log('[NavBar] Wallet connection state changed:', newValue);
 });
 
 // Toggle settings dropdown visibility
@@ -89,9 +92,11 @@ const connectWallet = async () => {
   }
 
   try {
-    await connect();
+    console.log('[NavBar] Attempting to connect wallet...');
+    await wallet.connect();
+    console.log('[NavBar] Wallet connected successfully');
   } catch (err) {
-    console.error('Failed to connect wallet:', err);
+    console.error('[NavBar] Failed to connect wallet:', err);
   }
 };
 
@@ -113,21 +118,22 @@ const copyToClipboard = async () => {
       isCopied.value = false;
     }, 2000);
   } catch (err) {
-    console.error('Failed to copy address:', err);
+    console.error('[NavBar] Failed to copy address:', err);
   }
 };
 
 // Logout Verus Wallet
 const logout = () => {
-  // Clear the wallet connection state
-  window.location.reload();
+  wallet.disconnect();
 };
 
 const logoutv = () => {
-  verusName.value = null;
-  localStorage.removeItem('name');
   authStore.logout();
 };
+
+onMounted(() => {
+  wallet.checkExtension();
+});
 </script>
 
 <style scoped>
@@ -143,32 +149,19 @@ const logoutv = () => {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.5rem;
-  transition: background-color 0.2s;
-}
-
-.user-menu-toggle:hover {
-  background: var(--hover-bg);
-}
-
-.username {
-  font-weight: 500;
-}
-
-.user-menu {
-  min-width: 150px;
-  right: 0;
-  top: 100%;
-  margin-top: 0.5rem;
 }
 
 .dropdown-menu {
   position: absolute;
-  background: var(--card-bg);
-  border: 1px solid var(--input-border-color);
+  top: 100%;
+  right: 0;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  min-width: 150px;
   z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .dropdown-item {
@@ -182,8 +175,67 @@ const logoutv = () => {
 }
 
 .dropdown-item:hover {
-  background: var(--hover-bg);
+  background-color: var(--hover-color);
 }
 
-/* Your existing styles */
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--background-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.navbar-search {
+  flex: 1;
+  max-width: 500px;
+  margin: 0 2rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wallet-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.copied {
+  color: var(--success-color);
+}
 </style>

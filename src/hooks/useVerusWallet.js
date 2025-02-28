@@ -16,16 +16,71 @@ export function useVerusWallet() {
     const currencies = ref([]);
     const network = ref({ isTestnet: true });
     const loading = ref(false);
+    const balanceError = ref(null);
 
     // Initialize state
     const checkExtension = async () => {
-        isInstalled.value = typeof window.verus !== 'undefined';
-        if (isInstalled.value) {
-            isConnected.value = window.verus.isConnected;
-            if (isConnected.value) {
-                address.value = window.verus.address;
-                await getCurrencies();
+        try {
+            isInstalled.value = typeof window.verus !== 'undefined';
+            if (isInstalled.value) {
+                isConnected.value = window.verus.isConnected;
+                if (isConnected.value) {
+                    address.value = window.verus.address;
+                    await getCurrencies();
+                }
             }
+            console.log('[useVerusWallet] Extension check complete:', { 
+                isInstalled: isInstalled.value, 
+                isConnected: isConnected.value 
+            });
+        } catch (err) {
+            console.error('[useVerusWallet] Error checking extension:', err);
+            error.value = err.message;
+        }
+    };
+
+    // Connect wallet
+    const connect = async () => {
+        try {
+            loading.value = true;
+            error.value = null;
+            balanceError.value = null;
+
+            if (!window.verus) {
+                throw new Error('Verus provider not available');
+            }
+
+            await window.verus.connect();
+            isConnected.value = true;
+            address.value = window.verus.address;
+            await getCurrencies();
+            console.log('[useVerusWallet] Successfully connected wallet');
+        } catch (err) {
+            error.value = err.message;
+            console.error('[useVerusWallet] Error connecting wallet:', err);
+            isConnected.value = false;
+            address.value = null;
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    // Disconnect wallet
+    const disconnect = async () => {
+        try {
+            loading.value = true;
+            error.value = null;
+            balanceError.value = null;
+            isConnected.value = false;
+            address.value = null;
+            currencies.value = [];
+            balances.value = {};
+        } catch (err) {
+            error.value = err.message;
+            console.error('[useVerusWallet] Error disconnecting wallet:', err);
+        } finally {
+            loading.value = false;
         }
     };
 
@@ -38,6 +93,8 @@ export function useVerusWallet() {
             }
 
             error.value = null;
+            balanceError.value = null;
+            loading.value = true;
             
             // Create new request promise
             currencyRequestPromise = (async () => {
@@ -51,26 +108,43 @@ export function useVerusWallet() {
                     const currencyList = await window.verus.getCurrencies();
                     console.log('[useVerusWallet] Got currency list:', currencyList);
                     
-                    if (!currencyList || !Array.isArray(currencyList)) {
+                    if (!Array.isArray(currencyList)) {
+                        console.error('[useVerusWallet] Invalid currency response:', currencyList);
                         throw new Error('Invalid currency data received');
                     }
 
-                    // Update currencies list with all available currencies
-                    currencies.value = currencyList;
-                    
-                    // Update balances for all currencies
-                    if (isConnected.value) {
-                        const newBalances = {};
-                        currencyList.forEach(currency => {
-                            if (currency.currencyid) {
-                                newBalances[currency.currencyid] = currency.balance || '0';
-                            }
-                        });
-                        balances.value = newBalances;
+                    // Update currencies list with zero balances initially
+                    currencies.value = currencyList.map(currency => ({
+                        ...currency,
+                        balance: '0'
+                    }));
+
+                    // Fetch all balances in one call
+                    try {
+                        const newBalances = await window.verus.getAllBalances();
+                        console.log('[useVerusWallet] Got all balances:', newBalances);
+                        
+                        if (newBalances && typeof newBalances === 'object') {
+                            // Update balances state
+                            balances.value = newBalances;
+
+                            // Update currency objects with their balances
+                            currencies.value = currencyList.map(currency => ({
+                                ...currency,
+                                balance: newBalances[currency.currencyid] || '0'
+                            }));
+                        } else {
+                            console.error('[useVerusWallet] Invalid balance response:', newBalances);
+                            throw new Error('Invalid balance data received');
+                        }
+                    } catch (err) {
+                        console.error('[useVerusWallet] Error fetching balances:', err);
+                        balanceError.value = err.message;
                     }
 
                     return currencyList;
                 } finally {
+                    loading.value = false;
                     // Clear the promise reference after a short delay
                     setTimeout(() => {
                         currencyRequestPromise = null;
@@ -80,45 +154,10 @@ export function useVerusWallet() {
 
             return currencyRequestPromise;
         } catch (err) {
+            loading.value = false;
             error.value = err.message;
             console.error('[useVerusWallet] Error getting currencies:', err);
             throw err;
-        }
-    };
-
-    const connect = async () => {
-        try {
-            loading.value = true;
-            error.value = null;
-            await window.verus.connect();
-            isConnected.value = true;
-            address.value = window.verus.address;
-            await getCurrencies();
-        } catch (err) {
-            error.value = err.message;
-            console.error('Error connecting wallet:', err);
-            isConnected.value = false;
-            address.value = null;
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const disconnect = async () => {
-        try {
-            loading.value = true;
-            error.value = null;
-            await window.verus.disconnect();
-            isConnected.value = false;
-            address.value = null;
-            currencies.value = [];
-            balances.value = {};
-        } catch (err) {
-            error.value = err.message;
-            console.error('Error disconnecting wallet:', err);
-        } finally {
-            loading.value = false;
         }
     };
 
@@ -126,39 +165,96 @@ export function useVerusWallet() {
         try {
             if (!isConnected.value) return '0';
             error.value = null;
+            balanceError.value = null;
+            loading.value = true;
+
+            console.log('[useVerusWallet] Getting balance for currency:', currency);
             const balance = await window.verus.getBalance(currency);
-            if (balance !== undefined) {
-                balances.value = {
-                    ...balances.value,
-                    [currency]: balance
-                };
-                return balance;
+            
+            // Validate balance response
+            if (typeof balance !== 'string' && typeof balance !== 'number') {
+                throw new Error('Invalid balance format received');
             }
-            return '0';
+            
+            const balanceStr = balance.toString();
+            
+            // Update balances state
+            balances.value = {
+                ...balances.value,
+                [currency]: balanceStr
+            };
+            
+            // Update currency object's balance
+            const currencyToUpdate = currencies.value.find(c => c.currencyid === currency);
+            if (currencyToUpdate) {
+                currencyToUpdate.balance = balanceStr;
+            }
+            
+            return balanceStr;
         } catch (err) {
-            error.value = err.message;
-            console.error('Error getting balance:', err);
+            balanceError.value = err.message;
+            console.error('[useVerusWallet] Error getting balance:', err);
             return '0';
+        } finally {
+            loading.value = false;
         }
     };
 
-    // Check connection status on mount
-    onMounted(async () => {
-        await checkExtension();
+    const refreshBalances = async () => {
+        try {
+            if (!isConnected.value || currencies.value.length === 0) return;
+            error.value = null;
+            balanceError.value = null;
+            loading.value = true;
+
+            console.log('[useVerusWallet] Refreshing all balances');
+            const newBalances = await window.verus.getAllBalances();
+            
+            if (!newBalances || typeof newBalances !== 'object') {
+                throw new Error('Invalid balance response format');
+            }
+            
+            // Update balances state
+            balances.value = newBalances;
+
+            // Update currency objects with their balances
+            currencies.value = currencies.value.map(currency => ({
+                ...currency,
+                balance: newBalances[currency.currencyid] || '0'
+            }));
+
+            console.log('[useVerusWallet] Successfully updated balances:', newBalances);
+        } catch (err) {
+            balanceError.value = err.message;
+            console.error('[useVerusWallet] Error refreshing balances:', err);
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    // Initialize on mount
+    onMounted(() => {
+        checkExtension();
     });
 
     return {
+        // State
+        address,
+        balances,
+        currencies,
+        error,
+        balanceError,
         isConnected,
         isInstalled,
-        address,
+        loading,
         network,
+        
+        // Methods
+        checkExtension,
         connect,
         disconnect,
         getCurrencies,
         getBalance,
-        balances,
-        currencies,
-        loading,
-        error
+        refreshBalances
     };
 }

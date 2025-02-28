@@ -71,11 +71,13 @@ export async function checkCurrencyBalance(address, targetCurrency) {
   }
 }
 
-export async function getConversionRate(fromCurrency, toCurrency) {
+export async function getConversionRate(fromCurrency, toCurrency, amount = 1) {
   try {
-    // Try direct conversion
+    console.log(`Getting conversion rate from ${fromCurrency} to ${toCurrency} for amount ${amount}`);
+    
+    // Try direct conversion first
     const estimateResult = await verusdClient.estimateConversion({
-      amount: 1,
+      amount: amount,
       currency: fromCurrency,
       convertto: toCurrency
     });
@@ -83,47 +85,54 @@ export async function getConversionRate(fromCurrency, toCurrency) {
     console.log("Estimate result:", estimateResult);
 
     if (estimateResult && estimateResult.result) {
+      const result = estimateResult.result;
+      const rate = result.estimatedcurrencyout / amount;
+      
       return {
-        defaultConverter: {
-          rate: estimateResult.result.estimatedcurrencyout || 1,
-          fees: estimateResult.result.fees || 0,
-          reserves: {}
-        }
+        rate: rate,
+        estimatedOutput: result.estimatedcurrencyout,
+        fees: result.fees || 0,
+        path: result.conversionpath || [],
+        reserves: result.reserves || {},
+        error: null
       };
     }
 
-    // Fallback to default rate
-    return {
-      defaultConverter: {
-        rate: 1,
-        fees: 0,
-        reserves: {}
+    // If direct conversion fails, try to get conversion through bridge
+    const converters = await getConverters();
+    if (converters && converters.length > 0) {
+      const bridgeRate = await processConverterResult(converters, fromCurrency, toCurrency, amount);
+      if (bridgeRate) {
+        return bridgeRate;
       }
-    };
+    }
+
+    throw new Error(`No conversion path found between ${fromCurrency} and ${toCurrency}`);
   } catch (error) {
-    console.error("Error getting conversion rate:", error);
-    // Return a default rate if we can't get the actual rate
+    console.error('Error getting conversion rate:', error);
     return {
-      defaultConverter: {
-        rate: 1,
-        fees: 0,
-        reserves: {}
-      }
+      rate: 0,
+      estimatedOutput: 0,
+      fees: 0,
+      path: [],
+      reserves: {},
+      error: error.message
     };
   }
 }
 
-function processConverterResult(converters, fromCurrency, toCurrency) {
+function processConverterResult(converters, fromCurrency, toCurrency, amount) {
   const rates = {};
   
   if (!converters || typeof converters !== 'object') {
     console.log('No valid converters found, using default rate');
     return {
-      defaultConverter: {
-        rate: 1,
-        fees: 0,
-        reserves: {}
-      }
+      rate: 1,
+      estimatedOutput: amount,
+      fees: 0,
+      path: [],
+      reserves: {},
+      error: null
     };
   }
 
@@ -134,19 +143,15 @@ function processConverterResult(converters, fromCurrency, toCurrency) {
         converter.currencies.includes(toCurrency)) {
       rates[name] = {
         rate: converter.conversionrate || 1,
+        estimatedOutput: amount * (converter.conversionrate || 1),
         fees: converter.fees || 0,
+        path: [fromCurrency, toCurrency],
         reserves: converter.reserves || {}
       };
     }
   });
 
-  return Object.keys(rates).length > 0 ? rates : {
-    defaultConverter: {
-      rate: 1,
-      fees: 0,
-      reserves: {}
-    }
-  };
+  return Object.keys(rates).length > 0 ? rates : null;
 }
 
 export async function getConverters() {
@@ -211,14 +216,14 @@ export async function sendCrossChain({ fromCurrency, toCurrency, amount }) {
     }
 
     // Get conversion rate
-    const conversionDetails = await getConversionRate(fromCurrency, toCurrency);
+    const conversionDetails = await getConversionRate(fromCurrency, toCurrency, amount);
     console.log('Conversion details:', conversionDetails);
 
     if (!conversionDetails || typeof conversionDetails.rate !== 'number') {
       throw new Error('Could not determine conversion rate');
     }
 
-    const expectedOutput = parseFloat(amount) * conversionDetails.rate * (1 - conversionDetails.fees);
+    const expectedOutput = conversionDetails.estimatedOutput;
     console.log('Expected output:', expectedOutput);
 
     // Get UTXOs for the address

@@ -22,7 +22,7 @@
         </div>
         
         <ul class="m-ul">
-          <li v-for="coin in coinList" 
+          <li v-for="coin in sortedCoinList" 
               :key="coin.currencyid" 
               @click="selectCoin(coin)" 
               class="m-li"
@@ -35,12 +35,10 @@
                    :key="coin.currencyid" />
               <div class="coin-details">
                 <span class="coin-name">{{ coin.name }}</span>
-                <span class="coin-id">{{ coin.currencyid }}</span>
               </div>
             </div>
             <div class="coin-balance">
               <span class="balance-amount">{{ formatBalance(coin.balance) }}</span>
-              <span class="balance-currency">{{ coin.currencyid }}</span>
             </div>
           </li>
         </ul>
@@ -50,7 +48,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits, ref, computed } from 'vue';
 import { useVerusWallet } from '../hooks/useVerusWallet';
 
 const { balances } = useVerusWallet();
@@ -68,11 +66,27 @@ const props = defineProps({
   }
 });
 
+// Sort coins by balance
+const sortedCoinList = computed(() => {
+  if (!props.coinList) return [];
+  
+  return [...props.coinList].sort((a, b) => {
+    const balanceA = parseFloat(a.balance || '0');
+    const balanceB = parseFloat(b.balance || '0');
+    if (balanceB === balanceA) {
+      // If balances are equal, sort by name
+      return a.name.localeCompare(b.name);
+    }
+    return balanceB - balanceA; // Sort in descending order
+  });
+});
+
 const emit = defineEmits(['selectCoin', 'closeModal']);
 
 function hasBalance(coin) {
   if (!coin.balance) return false;
-  return parseFloat(coin.balance) > 0;
+  const balance = parseFloat(coin.balance);
+  return balance > 0;
 }
 
 function handleImageError(event) {

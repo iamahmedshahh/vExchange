@@ -22,8 +22,14 @@
     />
     
     <div v-if="conversionRate" class="conversion-info">
-      <p>1 {{ sellCoin?.name }} = {{ conversionRate.rate }} {{ buyCoin?.name }}</p>
-      <p v-if="conversionRate.fees">Fee: {{ (conversionRate.fees * 100).toFixed(2) }}%</p>
+      <p class="rate">1 {{ sellCoin?.name }} = {{ formatNumber(conversionRate.rate) }} {{ buyCoin?.name }}</p>
+      <p v-if="conversionRate.fees" class="fees">Fee: {{ (conversionRate.fees * 100).toFixed(2) }}%</p>
+      <p v-if="conversionRate.path?.length > 0" class="path">
+        Via: {{ formatConversionPath(conversionRate.path) }}
+      </p>
+      <p v-if="conversionRate.error" class="error">
+        {{ conversionRate.error }}
+      </p>
     </div>
     
     <SwapField 
@@ -63,6 +69,7 @@ import CoinModal from './CoinModal.vue';
 import SwapProgress from './SwapProgress.vue';
 import { useUserStore } from '../stores/userStore';
 import { useVerusWallet } from '../hooks/useVerusWallet';
+import { getConversionRate } from '../scripts/verusRpcInit';
 
 const userStore = useUserStore();
 const { 
@@ -73,6 +80,7 @@ const {
   getCurrencies,
   checkExtension,
   network,
+  preconvertCurrency,
   error: walletError 
 } = useVerusWallet();
 
@@ -130,6 +138,16 @@ function formatBalance(balance) {
   return parseFloat(balance).toFixed(8);
 }
 
+function formatNumber(num) {
+  if (!num) return '0';
+  return Number(num).toFixed(8).replace(/\.?0+$/, '');
+};
+
+function formatConversionPath(path) {
+  if (!path || !Array.isArray(path)) return '';
+  return path.join(' → ');
+};
+
 // Computed property to check if swap is possible
 const canSwap = computed(() => {
   return isConnected.value && 
@@ -148,24 +166,39 @@ function getSwapButtonText() {
 }
 
 // Watch for changes in selected coins to update conversion rate
-watch([sellCoin, buyCoin], async ([newSell, newBuy]) => {
+watch([sellCoin, buyCoin, sellAmount], async ([newSell, newBuy, newAmount], [oldSell, oldBuy, oldAmount]) => {
   if (newSell && newBuy) {
     try {
-      const rates = await window.verus.getConversionRate(newSell.name, newBuy.name);
-      if (rates && Object.keys(rates).length > 0) {
-        // Use the first available converter's rate
-        conversionRate.value = rates[Object.keys(rates)[0]];
-      } else {
-        conversionRate.value = null;
+      isLoading.value = true;
+      const amount = parseFloat(newAmount) || 1;
+      
+      const rate = await getConversionRate(
+        newSell.currencyid,
+        newBuy.currencyid,
+        amount
+      );
+      
+      conversionRate.value = rate;
+      
+      // Update buy amount based on sell amount and rate
+      if (newAmount && !isNaN(amount) && rate.rate > 0) {
+        buyAmount.value = (amount * rate.rate).toFixed(8);
       }
     } catch (error) {
       console.error('Error getting conversion rate:', error);
-      conversionRate.value = null;
+      conversionRate.value = {
+        rate: 0,
+        fees: 0,
+        error: error.message
+      };
+    } finally {
+      isLoading.value = false;
     }
   } else {
     conversionRate.value = null;
+    buyAmount.value = '';
   }
-});
+}, { immediate: true });
 
 // Watch for changes in sell amount and conversion rate to update buy amount
 watch([sellAmount, conversionRate], ([newSellAmount, newRate]) => {
@@ -264,21 +297,44 @@ async function openModal(field) {
 
 async function fetchCoins() {
   try {
+    console.log('[Swap] Computing sorted coin list');
+    console.log('[Swap] Current coinList:', coinList.value);
+
+    // Get currencies from wallet
     const currencies = await getCurrencies();
     console.log('[Swap] Got currencies:', currencies);
-    
+
     if (!currencies || !Array.isArray(currencies) || currencies.length === 0) {
       throw new Error('No currencies available');
     }
 
     // Map currencies to coins with logos
-    const processedCoins = currencies.map(currency => ({
-      name: currency.name || currency.currencyid,
-      currencyid: currency.currencyid,
-      balance: currency.balance || '0',
-      logo: `/src/assets/${currency.currencyid.toLowerCase()}_logo.png`
-    }));
-    
+    const processedCoins = currencies
+      .filter(currency => {
+        const currencyId = currency.currencyid || currency.name;
+        if (!currencyId) {
+          console.warn('[Swap] Skipping currency missing ID:', currency);
+          return false;
+        }
+        return true;
+      })
+      .map(currency => {
+        const currencyId = currency.currencyid || currency.name;
+        return {
+          name: currency.name || currencyId,
+          currencyid: currencyId,
+          balance: currency.balance || '0',
+          logo: `/src/assets/${currencyId.toLowerCase()}_logo.png`,
+          istoken: currency.istoken || false,
+          issystemcurrency: currency.issystemcurrency || false,
+          isconvertible: currency.isconvertible || false
+        };
+      });
+
+    if (processedCoins.length === 0) {
+      throw new Error('No valid currencies found');
+    }
+
     console.log('[Swap] Processed coins:', processedCoins);
     coinList.value = processedCoins;
 
@@ -290,8 +346,6 @@ async function fetchCoins() {
         sellCoin.value = coinWithBalance;
       }
     }
-
-    return processedCoins;
   } catch (error) {
     console.error('[Swap] Error in fetchCoins:', error);
     throw error;
@@ -374,27 +428,26 @@ async function initiateSwap() {
 
     swapProgressRef.value?.updateProgress(1, 'Initiating swap...');
     
-    // Call sendCrossChain function with proper parameters
-    const result = await window.verus.sendCrossChain({
+    // Use preconvertCurrency instead of sendCrossChain
+    const txid = await preconvertCurrency({
       fromCurrency: sellCoin.value.name,
       toCurrency: buyCoin.value.name,
-      amount: sellAmount.value
+      amount: sellAmount.value,
+      memo: `Swap from ${sellCoin.value.name} to ${buyCoin.value.name}`
     });
 
-    console.log('Swap result:', result);
+    console.log('Swap transaction ID:', txid);
 
-    if (result.success) {
+    if (txid) {
       swapProgressRef.value?.updateProgress(2, 'Processing swap...');
       // Monitor the transaction
       setTimeout(() => {
-        swapProgressRef.value?.updateProgress(3, `Swap completed! Transaction ID: ${result.data}`);
+        swapProgressRef.value?.updateProgress(3, `Swap completed! Transaction ID: ${txid}`);
       }, 3000);
-    } else {
-      const errorMsg = result.error.includes('No UTXOs found') 
-        ? `Insufficient ${sellCoin.value.name} balance` 
-        : result.error;
-      errorMessage.value = errorMsg;
-      swapProgressRef.value?.setError(errorMsg);
+
+      // Clear the form
+      sellAmount.value = '';
+      buyAmount.value = '';
     }
   } catch (error) {
     console.error('Swap error:', error);
@@ -479,12 +532,33 @@ async function initiateSwap() {
 }
 
 .conversion-info {
-  background: #fff;
+  margin: 1rem 0;
+  padding: 1rem;
   border-radius: 8px;
-  padding: 12px;
-  margin: 12px 0;
-  font-size: 0.9em;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.conversion-info p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.conversion-info .rate {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.conversion-info .fees {
+  color: #888;
+}
+
+.conversion-info .path {
   color: #666;
-  text-align: center;
+  font-size: 0.8rem;
+}
+
+.conversion-info .error {
+  color: #ff4444;
+  font-size: 0.8rem;
 }
 </style>
