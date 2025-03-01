@@ -19,6 +19,8 @@
       <div v-else>
         <div class="debug-info" style="padding: 10px; font-size: 12px; color: #666;">
           Available coins: {{ coinList.length }}
+          <br>
+          Current balances: {{ JSON.stringify(balances) }}
         </div>
         
         <ul class="m-ul">
@@ -35,10 +37,11 @@
                    :key="coin.currencyid" />
               <div class="coin-details">
                 <span class="coin-name">{{ coin.name }}</span>
+                <span class="coin-id" style="font-size: 0.8em; color: #666;">{{ coin.currencyid }}</span>
               </div>
             </div>
             <div class="coin-balance">
-              <span class="balance-amount">{{ formatBalance(coin.balance) }}</span>
+              <span class="balance-amount">{{ formatBalance(balances[coin.currencyid || coin.name]) }}</span>
             </div>
           </li>
         </ul>
@@ -84,9 +87,9 @@ const sortedCoinList = computed(() => {
 const emit = defineEmits(['selectCoin', 'closeModal']);
 
 function hasBalance(coin) {
-  if (!coin.balance) return false;
-  const balance = parseFloat(coin.balance);
-  return balance > 0;
+  const id = coin.currencyid || coin.name;
+  const balance = balances[id] || '0';
+  return parseFloat(balance) > 0;
 }
 
 function handleImageError(event) {
@@ -97,16 +100,24 @@ function formatBalance(balance) {
   if (!balance) return '0';
   const num = parseFloat(balance);
   if (num === 0) return '0';
-  if (num < 0.00001) return '< 0.00001';
   return num.toLocaleString(undefined, {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 5
+    maximumFractionDigits: 8
   });
 }
 
 function selectCoin(coin) {
-  console.log('Selecting coin:', coin);
-  emit('selectCoin', coin);
+  console.log('[CoinModal] Selecting coin:', coin);
+  console.log('[CoinModal] Current balances:', balances);
+  
+  const id = coin.currencyid || coin.name;
+  const balance = balances[id] || '0.00000000';
+  console.log('[CoinModal] Found balance:', balance);
+  
+  emit('selectCoin', {
+    ...coin,
+    balance
+  });
 }
 
 function closeModal() {

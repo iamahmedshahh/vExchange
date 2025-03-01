@@ -13,7 +13,6 @@
         <button @click="openModal" class="coin-select">
           <img v-if="selectedCoin" :src="selectedCoin.logo" alt="Coin logo" class="coin-logo" />
           <span class="coin-name">{{ selectedCoin ? selectedCoin.name : 'Select token' }}</span>
-          <span v-if="selectedCoin" class="coin-id">{{ selectedCoin.currencyid }}</span>
         </button>
       </div>
     </div>

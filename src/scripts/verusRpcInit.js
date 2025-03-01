@@ -71,6 +71,32 @@ export async function checkCurrencyBalance(address, targetCurrency) {
   }
 }
 
+// Get available conversion paths between currencies
+export async function getCurrencyPaths(fromCurrency, toCurrency) {
+  try {
+    console.log(`Getting conversion paths from ${fromCurrency} to ${toCurrency}`);
+    
+    const response = await verusdClient.getcurrencyconverters([fromCurrency, toCurrency]);
+    console.log("Currency paths response:", response);
+
+    if (!response || !response.result) {
+      throw new Error('Failed to get currency converters');
+    }
+
+    return {
+      paths: response.result || [],
+      error: null
+    };
+
+  } catch (error) {
+    console.error('Error getting currency paths:', error);
+    return {
+      paths: [],
+      error: error.message
+    };
+  }
+}
+
 export async function getConversionRate(fromCurrency, toCurrency, amount = 1) {
   try {
     console.log(`Getting conversion rate from ${fromCurrency} to ${toCurrency} for amount ${amount}`);
@@ -98,12 +124,30 @@ export async function getConversionRate(fromCurrency, toCurrency, amount = 1) {
       };
     }
 
-    // If direct conversion fails, try to get conversion through bridge
-    const converters = await getConverters();
-    if (converters && converters.length > 0) {
-      const bridgeRate = await processConverterResult(converters, fromCurrency, toCurrency, amount);
-      if (bridgeRate) {
-        return bridgeRate;
+    // If direct conversion fails, try to get available paths
+    const pathsResult = await getCurrencyPaths(fromCurrency, toCurrency);
+    if (pathsResult.paths && pathsResult.paths.length > 0) {
+      // Try conversion with the first available path
+      const pathEstimate = await verusdClient.estimateConversion({
+        amount: amount,
+        currency: fromCurrency,
+        convertto: toCurrency,
+        via: pathsResult.paths[0]
+      });
+
+      if (pathEstimate && pathEstimate.result) {
+        const result = pathEstimate.result;
+        const rate = result.estimatedcurrencyout / amount;
+        
+        return {
+          rate: rate,
+          estimatedOutput: result.estimatedcurrencyout,
+          fees: result.fees || 0,
+          path: pathsResult.paths[0],
+          reserves: result.reserves || {},
+          error: null,
+          availablePaths: pathsResult.paths
+        };
       }
     }
 
@@ -119,39 +163,6 @@ export async function getConversionRate(fromCurrency, toCurrency, amount = 1) {
       error: error.message
     };
   }
-}
-
-function processConverterResult(converters, fromCurrency, toCurrency, amount) {
-  const rates = {};
-  
-  if (!converters || typeof converters !== 'object') {
-    console.log('No valid converters found, using default rate');
-    return {
-      rate: 1,
-      estimatedOutput: amount,
-      fees: 0,
-      path: [],
-      reserves: {},
-      error: null
-    };
-  }
-
-  // Process each converter
-  Object.entries(converters).forEach(([name, converter]) => {
-    if (converter.currencies && 
-        converter.currencies.includes(fromCurrency) && 
-        converter.currencies.includes(toCurrency)) {
-      rates[name] = {
-        rate: converter.conversionrate || 1,
-        estimatedOutput: amount * (converter.conversionrate || 1),
-        fees: converter.fees || 0,
-        path: [fromCurrency, toCurrency],
-        reserves: converter.reserves || {}
-      };
-    }
-  });
-
-  return Object.keys(rates).length > 0 ? rates : null;
 }
 
 export async function getConverters() {

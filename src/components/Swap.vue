@@ -121,21 +121,24 @@ const sortedCoinList = computed(() => {
 
 const sellBalance = computed(() => {
   if (!sellCoin.value) return '0';
-  const balance = sellCoin.value.balance || balances.value[sellCoin.value.currencyid] || 0;
-  console.log('Computed sell balance:', balance);
-  return formatBalance(balance);
+  const id = sellCoin.value.currencyid || sellCoin.value.name;
+  return balances.value[id] || '0';
 });
 
 const buyBalance = computed(() => {
   if (!buyCoin.value) return '0';
-  const balance = buyCoin.value.balance || balances.value[buyCoin.value.currencyid] || 0;
-  console.log('Computed buy balance:', balance);
-  return formatBalance(balance);
+  const id = buyCoin.value.currencyid || buyCoin.value.name;
+  return balances.value[id] || '0';
 });
 
 function formatBalance(balance) {
-  if (!balance) return '0.00';
-  return parseFloat(balance).toFixed(8);
+  if (!balance) return '0';
+  const num = parseFloat(balance);
+  if (num === 0) return '0';
+  return num.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8
+  });
 }
 
 function formatNumber(num) {
@@ -353,24 +356,25 @@ async function fetchCoins() {
 }
 
 function selectCoin(coin) {
-  console.log('Selected coin:', coin);
-  console.log('Selected coin balance:', coin.balance);
+  console.log('[Swap] Selected coin:', coin);
   
-  const coinWithBalance = {
-    ...coin,
-    balance: coin.balance || balances.value[coin.currencyid] || 0
-  };
+  // Get the balance using currencyid or name
+  const id = coin.currencyid || coin.name;
+  const balance = balances.value[id] || '0';
+  console.log('[Swap] Selected coin balance:', balance);
   
   if (selectedField.value === 'sell') {
-    console.log('Setting sell coin with balance:', coinWithBalance);
-    sellCoin.value = coinWithBalance;
-    // Update sell amount max based on balance
-    if (coinWithBalance.balance > 0) {
-      console.log('Setting max sell amount to:', coinWithBalance.balance);
-    }
+    console.log('[Swap] Setting sell coin:', coin);
+    sellCoin.value = {
+      ...coin,
+      balance
+    };
   } else {
-    console.log('Setting buy coin with balance:', coinWithBalance);
-    buyCoin.value = coinWithBalance;
+    console.log('[Swap] Setting buy coin:', coin);
+    buyCoin.value = {
+      ...coin,
+      balance
+    };
   }
   
   closeModal();
@@ -381,18 +385,18 @@ function closeModal() {
 }
 
 const checkBalance = async () => {
-  const iaddress = localStorage.getItem('iaddress');
-  if (!iaddress) {
-    console.error('No iaddress found');
-    return false;
-  }
+  if (!sellCoin.value) return false;
 
   try {
-    const balanceCheck = await window.verus.checkCurrencyBalance(iaddress, sellCoin.value.name);
-    console.log('Balance check result:', balanceCheck);
+    // Use the current balance from the balances state
+    const id = sellCoin.value.currencyid || sellCoin.value.name;
+    const currentBalance = parseFloat(balances.value[id] || '0');
+    const requiredAmount = parseFloat(sellAmount.value);
 
-    if (!balanceCheck.available || balanceCheck.balance < parseFloat(sellAmount.value)) {
-      errorMessage.value = `Insufficient ${sellCoin.value.name} balance. Available: ${balanceCheck.balance}`;
+    console.log('[Swap] Checking balance:', { currentBalance, requiredAmount });
+
+    if (currentBalance < requiredAmount) {
+      errorMessage.value = `Insufficient ${sellCoin.value.name} balance. Available: ${formatBalance(currentBalance)}`;
       return false;
     }
 
