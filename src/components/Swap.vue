@@ -23,10 +23,67 @@
     
     <div v-if="conversionRate" class="conversion-info">
       <p class="rate">1 {{ sellCoin?.name }} = {{ formatNumber(conversionRate.rate) }} {{ buyCoin?.name }}</p>
-      <p v-if="conversionRate.fees" class="fees">Fee: {{ (conversionRate.fees * 100).toFixed(2) }}%</p>
-      <p v-if="conversionRate.path?.length > 0" class="path">
-        Via: {{ formatConversionPath(conversionRate.path) }}
+      
+      <!-- Path Details -->
+      <div v-if="conversionRate.pathDetails?.best" class="path-details">
+        <div class="best-path">
+          <p class="path-header">Best Route:</p>
+          <div class="path-info">
+            <p class="path-name">
+              Via: <span class="path-highlight">{{ formatConversionPath([conversionRate.pathDetails.best.name]) }}</span>
+            </p>
+            <div class="path-stats">
+              <div class="stat-item">
+                <span class="stat-label">Input Reserve:</span>
+                <span class="stat-value">{{ formatNumber(conversionRate.pathDetails.best.inputReserve) }} {{ sellCoin?.name }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Output Reserve:</span>
+                <span class="stat-value">{{ formatNumber(conversionRate.pathDetails.best.outputReserve) }} {{ buyCoin?.name }}</span>
+              </div>
+              <div class="stat-item" v-if="conversionRate.pathDetails.best.estimatedSlippage">
+                <span class="stat-label">Est. Slippage:</span>
+                <span class="stat-value">{{ formatNumber(conversionRate.pathDetails.best.estimatedSlippage * 100) }}%</span>
+              </div>
+              <div class="stat-item limits">
+                <span class="stat-label">Limits:</span>
+                <span class="stat-value">
+                  Min: {{ formatNumber(conversionRate.pathDetails.best.minInput) }} {{ sellCoin?.name }}
+                  <br>
+                  Max: {{ formatNumber(conversionRate.pathDetails.best.maxInput) }} {{ sellCoin?.name }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alternative Paths -->
+        <div v-if="conversionRate.pathDetails.alternatives?.length" class="alternative-paths">
+          <p class="path-header">Alternative Routes:</p>
+          <div v-for="(path, index) in conversionRate.pathDetails.alternatives" :key="index" class="alt-path">
+            <p class="path-name">{{ formatConversionPath([path.name]) }}</p>
+            <div class="alt-path-stats">
+              <span class="stat-item">
+                <span class="stat-label">Input Reserve:</span>
+                {{ formatNumber(path.inputReserve) }}
+              </span>
+              <span class="stat-item">
+                <span class="stat-label">Output Reserve:</span>
+                {{ formatNumber(path.outputReserve) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p v-if="conversionRate.fees" class="fees">
+        Fee: {{ formatNumber(conversionRate.fees * 100) }}%
+        <span v-if="conversionRate.details" class="fee-details">
+          ({{ formatNumber(conversionRate.details.input.amount) }} {{ conversionRate.details.input.currency }} →
+          {{ formatNumber(conversionRate.details.output.amount) }} {{ conversionRate.details.output.currency }})
+        </span>
       </p>
+      
       <p v-if="conversionRate.error" class="error">
         {{ conversionRate.error }}
       </p>
@@ -148,7 +205,7 @@ function formatNumber(num) {
 
 function formatConversionPath(path) {
   if (!path || !Array.isArray(path)) return '';
-  return path.join(' → ');
+  return path.map(p => typeof p === 'string' ? p : (p.fullyqualifiedname || 'Unknown')).join(' → ');
 };
 
 // Computed property to check if swap is possible
@@ -272,10 +329,12 @@ onMounted(async () => {
 async function openModal(field) {
   console.log('[Swap] Opening modal for field:', field);
   
+  // Reset states first
   selectedField.value = field;
   isModalOpen.value = true;
   modalLoading.value = true;
   errorMessage.value = '';
+  coinList.value = []; // Clear previous coin list
   
   try {
     // Check wallet connection
@@ -296,6 +355,13 @@ async function openModal(field) {
   } finally {
     modalLoading.value = false;
   }
+}
+
+function closeModal() {
+  isModalOpen.value = false;
+  modalLoading.value = false;
+  errorMessage.value = '';
+  selectedField.value = null;
 }
 
 async function fetchCoins() {
@@ -380,10 +446,6 @@ function selectCoin(coin) {
   closeModal();
 }
 
-function closeModal() {
-  isModalOpen.value = false;
-}
-
 const checkBalance = async () => {
   if (!sellCoin.value) return false;
 
@@ -409,54 +471,50 @@ const checkBalance = async () => {
 };
 
 async function initiateSwap() {
-  if (!isLoggedIn.value || !sellCoin.value || !buyCoin.value || !sellAmount.value) {
-    return;
-  }
+  if (!canSwap.value) return;
 
   try {
-    const iaddress = localStorage.getItem('iaddress');
-    console.log('Initiating swap for iAddress:', iaddress);
-    
-    if (!iaddress) {
-      errorMessage.value = 'Please log in again to verify your address';
-      return;
-    }
-
+    isLoading.value = true;
     errorMessage.value = '';
-    swapProgressRef.value?.updateProgress(1, 'Checking balance...');
 
-    if (!await checkBalance()) {
-      swapProgressRef.value?.setError(errorMessage.value);
-      return;
+    // Update progress
+    if (swapProgressRef.value) {
+      swapProgressRef.value.startSwap();
     }
 
-    swapProgressRef.value?.updateProgress(1, 'Initiating swap...');
-    
-    // Use preconvertCurrency instead of sendCrossChain
-    const txid = await preconvertCurrency({
-      fromCurrency: sellCoin.value.name,
-      toCurrency: buyCoin.value.name,
-      amount: sellAmount.value,
-      memo: `Swap from ${sellCoin.value.name} to ${buyCoin.value.name}`
+    // Execute the swap
+    const result = await preconvertCurrency({
+      fromCurrency: sellCoin.value.currencyid,
+      toCurrency: buyCoin.value.currencyid,
+      amount: parseFloat(sellAmount.value),
+      via: conversionRate.value?.path?.[0] || 'SPORTS'
     });
 
-    console.log('Swap transaction ID:', txid);
-
-    if (txid) {
-      swapProgressRef.value?.updateProgress(2, 'Processing swap...');
-      // Monitor the transaction
-      setTimeout(() => {
-        swapProgressRef.value?.updateProgress(3, `Swap completed! Transaction ID: ${txid}`);
-      }, 3000);
-
-      // Clear the form
-      sellAmount.value = '';
-      buyAmount.value = '';
+    // Update progress on success
+    if (swapProgressRef.value) {
+      swapProgressRef.value.completeSwap(result.txid);
     }
+
+    // Reset form
+    sellAmount.value = '';
+    buyAmount.value = '';
+
+    // Refresh balances
+    await Promise.all([
+      getBalance(sellCoin.value.currencyid),
+      getBalance(buyCoin.value.currencyid)
+    ]);
+
   } catch (error) {
     console.error('Swap error:', error);
-    errorMessage.value = error.message;
-    swapProgressRef.value?.setError('Failed to initiate swap: ' + error.message);
+    errorMessage.value = error.message || 'Failed to execute swap';
+    
+    // Update progress on error
+    if (swapProgressRef.value) {
+      swapProgressRef.value.failSwap(error.message);
+    }
+  } finally {
+    isLoading.value = false;
   }
 }
 </script>
@@ -564,5 +622,87 @@ async function initiateSwap() {
 .conversion-info .error {
   color: #ff4444;
   font-size: 0.8rem;
+}
+
+.path-details {
+  margin: 12px 0;
+  background: rgba(44, 62, 80, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.path-header {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.path-info {
+  padding-left: 8px;
+  border-left: 3px solid #3498db;
+}
+
+.path-name {
+  margin: 4px 0;
+  color: #2c3e50;
+}
+
+.path-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stat-item {
+  font-size: 0.85em;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.stat-label {
+  color: #7f8c8d;
+  margin-bottom: 2px;
+}
+
+.stat-value {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.limits {
+  grid-column: 1 / -1;
+}
+
+.alternative-paths {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #bdc3c7;
+}
+
+.alt-path {
+  padding: 8px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.alt-path-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.path-highlight {
+  color: #2c3e50;
+  font-weight: 500;
+  background: rgba(52, 152, 219, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 </style>

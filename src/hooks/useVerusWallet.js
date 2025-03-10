@@ -225,6 +225,48 @@ export function useVerusWallet() {
         }
     };
 
+    // Preconvert currency (swap)
+    const preconvertCurrency = async (params) => {
+        try {
+            if (!isConnected.value) {
+                throw new Error('Wallet not connected');
+            }
+
+            error.value = null;
+            loading.value = true;
+
+            const { fromCurrency, toCurrency, amount, via = 'SPORTS' } = params;
+
+            if (!fromCurrency || !toCurrency || !amount) {
+                throw new Error('Invalid swap parameters');
+            }
+
+            // Call the extension's preconvert method
+            const result = await window.verus.preconvertCurrency({
+                fromAddress: address.value,
+                fromCurrency,
+                toCurrency,
+                amount: amount.toString(),
+                via
+            });
+
+            if (!result || !result.txid) {
+                throw new Error('Failed to execute swap');
+            }
+
+            // Refresh balances after successful swap
+            await refreshBalances();
+
+            return result;
+        } catch (err) {
+            error.value = err.message;
+            console.error('[useVerusWallet] Error in preconvert:', err);
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    };
+
     // Auto-refresh balances periodically when connected
     let refreshInterval = null;
     watch(isConnected, async (newIsConnected) => {
@@ -257,20 +299,21 @@ export function useVerusWallet() {
         // State
         address,
         balances,
-        currencies,
-        error,
-        balanceError,
         isConnected,
         isInstalled,
-        loading,
+        error,
+        balanceError,
+        currencies,
         network,
-        
+        loading,
+
         // Methods
-        checkExtension,
         connect,
         disconnect,
-        getCurrencies,
         getBalance,
-        refreshBalances
+        getCurrencies,
+        checkExtension,
+        refreshBalances,
+        preconvertCurrency
     };
 }

@@ -15,27 +15,23 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Loading from './Loading.vue';
-import { getBal } from '../scripts/verusRpcInit';
+import { useVerusWallet } from '../hooks/useVerusWallet';
 
 const loading = ref(true);
 const name = ref(localStorage.getItem('name'));
 const iaddress = ref(localStorage.getItem('iaddress'));
 const balanceForUser = ref(null);
+const { getBalance } = useVerusWallet();
 
 onMounted(async () => {
   if (name.value && iaddress.value) {
     try {
-      const balance = await getBal(iaddress.value);
-      console.log('Full balance response:', balance);
+      const balance = await getBalance('VRSC');
+      console.log('VRSC balance:', balance);
       
-      if (balance && balance.result && typeof balance.result.balance !== 'undefined') {
-        const balanceAmount = balance.result.balance;
-        const balanceInVRSC = balanceAmount / 100000000;
+      if (balance !== undefined) {
+        const balanceInVRSC = balance / 100000000;
         balanceForUser.value = `${balanceInVRSC.toFixed(8)} VRSC`;
-
-        if (balance.result.currencybalance) {
-          console.log('Currency balances:', balance.result.currencybalance);
-        }
       } else {
         balanceForUser.value = "0.00000000 VRSC";
       }

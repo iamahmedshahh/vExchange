@@ -105,10 +105,9 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/authStore';
 import { useVerusWallet } from '../hooks/useVerusWallet';
-import { listCurrencies } from '../scripts/verusRpcInit';
 
 const authStore = useAuthStore();
-const { balances: verusBalances, isConnected, refreshBalances: refreshWalletBalances } = useVerusWallet();
+const { balances: verusBalances, isConnected, refreshBalances: refreshWalletBalances, getCurrencies } = useVerusWallet();
 
 const activeTab = ref('Verus');
 const currencies = ref([]);
@@ -148,8 +147,8 @@ const refreshBalances = async () => {
   
   loading.value = true;
   try {
-    const currencies = await listCurrencies();
-    await refreshWalletBalances(currencies.map(c => c.currencyid));
+    const currencyList = await getCurrencies();
+    await refreshWalletBalances(currencyList.map(c => c.currencyid));
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -169,8 +168,7 @@ const fetchVerusCurrencies = async () => {
   error.value = null;
   
   try {
-    const currenciesResult = await listCurrencies();
-    currencies.value = currenciesResult;
+    currencies.value = await getCurrencies();
     console.log('Updated currencies:', currencies.value);
   } catch (err) {
     console.error('Error fetching Verus currencies:', err);
@@ -207,16 +205,17 @@ const setActiveTab = (tab) => {
 watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   console.log('Auth state changed:', isLoggedIn);
   if (!isLoggedIn) {
-    // Clear all data when logged out
     currencies.value = [];
-    balances.value = [];
-    walletAddress.value = null;
-    error.value = null;
-  } else if (authStore.iaddress) {
-    // Refresh data when logged in
+    error.value = 'Please log in to view currencies';
+  } else if (activeTab.value === 'Verus') {
     fetchVerusCurrencies();
   }
-}, { immediate: true });
+});
+
+// Initial fetch if logged in
+if (authStore.isLoggedIn && activeTab.value === 'Verus') {
+  fetchVerusCurrencies();
+}
 </script>
 
 <style scoped>
