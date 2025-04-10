@@ -1,35 +1,27 @@
 <template>
-  <div class="page-container">
-  <header class="navbar">
-    <NavBar @toggle-modal="showModal = !showModal" />
-  </header>
-  <main class="main-content">
-  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-        <QrLogin @close="showModal = false"/>
-  </div>
-  <div v-else>
-    <Swap></Swap>
-  </div>
-</main>
-  <footer class="footer">
-    <p>&copy; 2024 VerusSwap - All rights reserved.</p>
-  </footer>
-  </div>
+  <MainLayout>
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+  </MainLayout>
 </template>
 
 <script setup>
-import NavBar from './components/NavBar.vue';
-import Swap from './components/Swap.vue';
-import QrLogin from './components/QrLogin.vue';
-import { ref, onMounted} from 'vue';
-import { useAuthStore } from './stores/authStore';
+import MainLayout from './components/layout/MainLayout.vue';
+import { onMounted } from 'vue';
+import { useVerusWallet } from './hooks/useVerusWallet';
 
-const authStore = useAuthStore();
-const showModal = ref(false);
+const { checkExtension } = useVerusWallet();
 
 onMounted(async () => {
-  // Initialize auth store
-  authStore.init();
+  // Check if Verus extension is installed and available
+  await checkExtension();
 });
-
 </script>
+
+<style>
+/* Import global variables */
+@import './assets/css/variables.css';
+</style>

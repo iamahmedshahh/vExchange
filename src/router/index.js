@@ -1,25 +1,19 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
-import WalletPage from '../components/WalletPage.vue';
-import Swap from '../components/Swap.vue'
-import LoggedIn from '../components/LoggedIn.vue'
+import Home from '../views/Home.vue';
+import Wallet from '../views/Wallet.vue';
 
 const routes = [
   {
+    path: '/',
+    name: 'Home',
+    component: Home,
+  },
+  {
     path: '/wallet',
     name: 'Wallet',
-    component: WalletPage,
-  },
-  {
-    path: '/',
-    name: 'Swap',
-    component: Swap,
-  },
-  {
-    path: '/loggedin',
-    name: 'Logged In',
-    component: LoggedIn,
-  },
+    component: Wallet,
+  }
 ];
 
 const router = createRouter({
