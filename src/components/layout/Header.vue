@@ -10,6 +10,14 @@
       <div class="nav-links">
         <router-link to="/" class="nav-link" active-class="active" exact>Swap</router-link>
         <router-link to="/wallet" class="nav-link" active-class="active">Wallet</router-link>
+        <router-link to="/pools" class="nav-link coming-soon" active-class="active">
+          Pools
+          <span class="coming-soon-badge">Soon</span>
+        </router-link>
+        <router-link to="/nft" class="nav-link coming-soon" active-class="active">
+          NFT
+          <span class="coming-soon-badge">Soon</span>
+        </router-link>
       </div>
       
       <div class="header-actions">
@@ -153,6 +161,35 @@ onMounted(() => {
 .nav-link.active {
   color: var(--primary-color);
   background-color: var(--primary-color-light);
+}
+
+.coming-soon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coming-soon-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: linear-gradient(90deg, var(--primary-color), #9333ea);
+  color: white;
+  border-radius: 10px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .header-actions {
